@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">ConnectionClient</string>
+    <string name="scan">scan</string>
+</resources>
