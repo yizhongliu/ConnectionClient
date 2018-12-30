@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/device_fragment"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:drawSelectorOnTop="false"
+    style="@style/drawer" >
+
+    <TextView
+        android:id="@+id/label_contentDirectory"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="5dp"
+        android:text="@string/contentdirectory"
+        style="@style/deviceListLabel" />
+    <View
+        android:layout_width="fill_parent"
+        android:layout_height="1dp"
+        style="@style/deviceListSeparator"/>
+    <android.support.v7.widget.RecyclerView
+        android:layout_weight="1"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:id = "@+id/contentdirectory_recyclerview"/>
+
+    <TextView
+        android:id="@+id/label_renderer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="5dp"
+        android:text="@string/renderer"
+        style="@style/deviceListLabel" />
+    <View
+        android:layout_width="fill_parent"
+        android:layout_height="1dp"
+        style="@style/deviceListSeparator" />
+    <android.support.v7.widget.RecyclerView
+        android:layout_weight="1"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:id = "@+id/renderer_recyclerview"/>
+
+</LinearLayout>
