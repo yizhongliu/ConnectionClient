@@ -2,7 +2,6 @@ package com.iview.android.connectionclient;
 
 import android.Manifest;
 import android.content.ComponentName;
-import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Build;
@@ -14,12 +13,12 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
-import android.widget.TextView;
 
+import com.iview.android.connectionclient.control.UpnpServiceController;
 import com.iview.android.connectionclient.controlservice.ControlService;
-import com.iview.android.connectionclient.model.DeviceDisplay;
+import com.iview.android.connectionclient.view.ContentDirectoryFragment;
+import com.iview.android.connectionclient.view.DeviceDisplay;
 import com.iview.android.connectionclient.model.IServiceListener;
-import com.iview.android.connectionclient.view.Content;
 import com.tbruyelle.rxpermissions2.Permission;
 import com.tbruyelle.rxpermissions2.RxPermissions;
 
@@ -34,39 +33,19 @@ public class ControlPointActivity extends AppCompatActivity implements View.OnCl
 
     private final static String TAG = "ControlPointActivity";
 
-    private ControlServiceConnection mServiceConnection;
-    private ControlService.ControlBinder mControlBinder = null;
-    private ControlService mControlService;
+    public static UpnpServiceController mUpnpServiceController = null;
 
     private DrawerFragment mDrawerFragment;
 
-    private ServiceListerner mServiceListerner = new ServiceListerner();
+    private static ContentDirectoryFragment mContentDirectoryFragment;
 
-    private final static int MSG_ADD_DEVICE = 0;
-    private final static int MSG_REMOVE_DEVICE = 1;
+    public static void setContentDirectoryFragment(ContentDirectoryFragment f) {
+        mContentDirectoryFragment = f;
+    }
 
-    private Handler mHandler = new Handler () {
-        @Override
-        public void handleMessage(Message msg) {
-            super.handleMessage(msg);
-            switch (msg.what) {
-                case MSG_ADD_DEVICE:
-                    ArrayList addData = msg.getData().getParcelableArrayList("data");
-                    DeviceDisplay addDeviceDisplay = (DeviceDisplay) addData.get(0);
-                    addDevice(addDeviceDisplay);
-                    break;
-                case MSG_REMOVE_DEVICE:
-                    ArrayList removeData = msg.getData().getParcelableArrayList("data");
-                    DeviceDisplay removeDeviceDisplay = (DeviceDisplay) removeData.get(0);
-                    switch (removeDeviceDisplay.getDeviceType()) {
-                        case DeviceDisplay.DEVICE_TYPE_MEDIASERVER:
-                            removeDevice(removeDeviceDisplay);
-                            break;
-                    }
-                    break;
-            }
-        }
-    };
+    public static ContentDirectoryFragment getContentDirectoryFragment() {
+        return mContentDirectoryFragment;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,9 +55,30 @@ public class ControlPointActivity extends AppCompatActivity implements View.OnCl
         if (Build.VERSION.SDK_INT > 23) {
             checkPermission();
         }
+
+        if (mUpnpServiceController == null) {
+            mUpnpServiceController = new UpnpServiceController(this);
+        }
+
         initView();
-        initControl();
     }
+
+    @Override
+    public void onResume()
+    {
+        Log.v(TAG, "Resume activity");
+        mUpnpServiceController.resume(this);
+        super.onResume();
+    }
+
+    @Override
+    public void onPause()
+    {
+        Log.v(TAG, "Pause activity");
+        mUpnpServiceController.pause();
+        super.onPause();
+    }
+
 
     private void initView() {
         if(getFragmentManager().findFragmentById(R.id.navigation_drawer) instanceof DrawerFragment)
@@ -90,37 +90,6 @@ public class ControlPointActivity extends AppCompatActivity implements View.OnCl
             mDrawerFragment.setUp(
                     R.id.navigation_drawer,
                     (DrawerLayout) findViewById(R.id.drawer_layout));
-        }
-    }
-
-    private void initControl() {
-        mServiceConnection = new ControlServiceConnection();
-        Intent intent = new Intent();
-        intent.setAction("android.intent.action.ControlService");
-        intent.setPackage("com.iview.android.connectionclient");
-        bindService(intent, mServiceConnection, BIND_AUTO_CREATE);
-    }
-
-    private class ControlServiceConnection implements ServiceConnection {
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            Log.e(TAG, "onServiceConnect");
-            mControlBinder = (ControlService.ControlBinder) service;
-            mControlService = mControlBinder.getService();
-            mControlService.addServiceListerner(mServiceListerner);
-            mControlService.searchDevice();
-
-            DeviceList deviceList = mControlService.getDeviceList();
-            for (int i = 0; i < deviceList.size(); i++ ) {
-                Log.e(TAG, "getDecivelist :" + deviceList.getDevice(i).getFriendlyName());
-                DeviceDisplay deviceDisplay = new DeviceDisplay(deviceList.getDevice(i));
-                addDevice(deviceDisplay);
-            }
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-            mControlBinder = null;
         }
     }
 
@@ -152,60 +121,5 @@ public class ControlPointActivity extends AppCompatActivity implements View.OnCl
                         }
                     }
                 });
-    }
-
-    private class ServiceListerner implements IServiceListener {
-
-        @Override
-        public void deviceAdded(final Device device) {
-            Log.d(TAG, "device add");
-            DeviceDisplay deviceDisplay = new DeviceDisplay(device);
-            Bundle bundle = new Bundle();
-            ArrayList arr = new ArrayList();
-            arr.add(deviceDisplay);
-            bundle.putStringArrayList("data",arr);
-            Message message = new Message();
-            message.what = MSG_ADD_DEVICE;
-            message.setData(bundle);
-            mHandler.sendMessage(message);
-        }
-
-        @Override
-        public void deviceRemoved(final Device device) {
-            Log.d(TAG, "device remove");
-            DeviceDisplay deviceDisplay = new DeviceDisplay(device);
-            Bundle bundle = new Bundle();
-            ArrayList arr = new ArrayList();
-            arr.add(deviceDisplay);
-            bundle.putStringArrayList("data",arr);
-            Message message = new Message();
-            message.what = MSG_REMOVE_DEVICE;
-            message.setData(bundle);
-            mHandler.sendMessage(message);
-        }
-    }
-
-    public void addDevice(DeviceDisplay dev) {
-        Log.e(TAG, "addDevie und" + dev.getUDN());
-        switch (dev.getDeviceType()) {
-            case DeviceDisplay.DEVICE_TYPE_MEDIASERVER:
-                mDrawerFragment.addContetnDisplayDevice(dev);
-                break;
-            case DeviceDisplay.DEVICE_TYPE_RENDERER:
-                mDrawerFragment.addRendererDevice(dev);
-                break;
-        }
-    }
-
-    public void removeDevice(DeviceDisplay dev) {
-        Log.e(TAG, "removeDevice und" + dev.getUDN());
-        switch (dev.getDeviceType()) {
-            case DeviceDisplay.DEVICE_TYPE_MEDIASERVER:
-                mDrawerFragment.removeContetnDisplayDevice(dev);
-                break;
-            case DeviceDisplay.DEVICE_TYPE_RENDERER:
-                mDrawerFragment.removeRendererDevice(dev);
-                break;
-        }
     }
 }

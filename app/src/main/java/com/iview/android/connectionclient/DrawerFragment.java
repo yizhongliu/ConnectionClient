@@ -1,6 +1,8 @@
 package com.iview.android.connectionclient;
 
 import android.app.Fragment;
+import android.os.Handler;
+import android.os.Message;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.content.SharedPreferences;
@@ -18,19 +20,23 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.iview.android.connectionclient.model.upnp.IDeviceDiscoveryListener;
+import com.iview.android.connectionclient.model.upnp.IUpnpDevice;
 import com.iview.android.connectionclient.view.ContentDeviceAdapter;
-import com.iview.android.connectionclient.model.DeviceDisplay;
+import com.iview.android.connectionclient.view.DeviceDisplay;
 import com.iview.android.connectionclient.view.RendererAdapter;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Observable;
+import java.util.Observer;
 
 /**
  * Fragment used for managing interactions for and presentation of a navigation drawer.
  * See the <a href="https://developer.android.com/design/patterns/navigation-drawer.html#Interaction">
  * design guidelines</a> for a complete explanation of the behaviors implemented here.
  */
-public class DrawerFragment extends Fragment{
+public class DrawerFragment extends Fragment implements IDeviceDiscoveryListener, Observer {
 
     private final static String TAG = "DrawerFragment";
 
@@ -57,8 +63,33 @@ public class DrawerFragment extends Fragment{
 	private List<DeviceDisplay> mRendererList = new ArrayList<>();
 	private RendererAdapter mRendererAdapter;
 
-
 	private boolean mUserLearnedDrawer;
+
+    private final static int MSG_ADD_DEVICE = 0;
+    private final static int MSG_REMOVE_DEVICE = 1;
+
+    private Handler mHandler = new Handler () {
+        @Override
+        public void handleMessage(Message msg) {
+            super.handleMessage(msg);
+            switch (msg.what) {
+                case MSG_ADD_DEVICE:
+                    ArrayList addData = msg.getData().getParcelableArrayList("data");
+                    DeviceDisplay addDeviceDisplay = (DeviceDisplay) addData.get(0);
+                    addDevice(addDeviceDisplay);
+                    break;
+                case MSG_REMOVE_DEVICE:
+                    ArrayList removeData = msg.getData().getParcelableArrayList("data");
+                    DeviceDisplay removeDeviceDisplay = (DeviceDisplay) removeData.get(0);
+                    switch (removeDeviceDisplay.getDeviceType()) {
+                        case DeviceDisplay.DEVICE_TYPE_MEDIASERVER:
+                            removeDevice(removeDeviceDisplay);
+                            break;
+                    }
+                    break;
+            }
+        }
+    };
 
 	public DrawerFragment() {
 	}
@@ -78,7 +109,17 @@ public class DrawerFragment extends Fragment{
 		super.onActivityCreated(savedInstanceState);
 		// Indicate that this fragment would like to influence the set of actions in the action bar.
 		setHasOptionsMenu(true);
+
+		ControlPointActivity.mUpnpServiceController.getUpnpServiceListener().addDeviceListener(this);
 	}
+
+    @Override
+    public void onDestroy() {
+	    super.onDestroy();
+        ControlPointActivity.mUpnpServiceController.getUpnpServiceListener().removeDeviceListener(this);
+    }
+
+
 
 	@Override
 	public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -207,6 +248,7 @@ public class DrawerFragment extends Fragment{
 		for (int i = 0; i < mContentDispalyList.size(); i++) {
 			if (mContentDispalyList.get(i).isEquals(dev)) {
 				mContentDispalyList.remove(i);
+				mContentDeviceAdapter.notifyItemRemoved(i);
 				mContentDeviceAdapter.notifyDataSetChanged();
 				break;
 			}
@@ -225,6 +267,7 @@ public class DrawerFragment extends Fragment{
 		for (int i = 0; i < mRendererList.size(); i++) {
 			if (mRendererList.get(i).isEquals(dev)) {
 				mRendererList.remove(i);
+				mRendererAdapter.notifyItemRemoved(i);
 				mRendererAdapter.notifyDataSetChanged();
 				break;
 			}
@@ -244,4 +287,61 @@ public class DrawerFragment extends Fragment{
 
 		return ret;
 	}
+
+	@Override
+	public void addedDevice(IUpnpDevice device){
+        Log.d(TAG, "device add");
+        DeviceDisplay deviceDisplay = new DeviceDisplay(device);
+        Bundle bundle = new Bundle();
+        ArrayList arr = new ArrayList();
+        arr.add(deviceDisplay);
+        bundle.putStringArrayList("data",arr);
+        Message message = new Message();
+        message.what = MSG_ADD_DEVICE;
+        message.setData(bundle);
+        mHandler.sendMessage(message);
+	}
+
+	@Override
+	public void removedDevice(IUpnpDevice device) {
+        Log.d(TAG, "device remove");
+        DeviceDisplay deviceDisplay = new DeviceDisplay(device);
+        Bundle bundle = new Bundle();
+        ArrayList arr = new ArrayList();
+        arr.add(deviceDisplay);
+        bundle.putStringArrayList("data",arr);
+        Message message = new Message();
+        message.what = MSG_REMOVE_DEVICE;
+        message.setData(bundle);
+        mHandler.sendMessage(message);
+    }
+
+    public void addDevice(DeviceDisplay dev) {
+        Log.e(TAG, "addDevie und" + dev.getUDN());
+        switch (dev.getDeviceType()) {
+            case DeviceDisplay.DEVICE_TYPE_MEDIASERVER:
+                addContetnDisplayDevice(dev);
+                break;
+            case DeviceDisplay.DEVICE_TYPE_RENDERER:
+                addRendererDevice(dev);
+                break;
+        }
+    }
+
+    public void removeDevice(DeviceDisplay dev) {
+        Log.e(TAG, "removeDevice und" + dev.getUDN());
+        switch (dev.getDeviceType()) {
+            case DeviceDisplay.DEVICE_TYPE_MEDIASERVER:
+                removeContetnDisplayDevice(dev);
+                break;
+            case DeviceDisplay.DEVICE_TYPE_RENDERER:
+                removeRendererDevice(dev);
+                break;
+        }
+    }
+
+    @Override
+    public void update(Observable observable, Object o) {
+
+    }
 }

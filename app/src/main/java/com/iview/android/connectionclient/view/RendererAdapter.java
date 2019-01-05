@@ -8,7 +8,6 @@ import android.view.ViewGroup;
 import android.widget.CheckedTextView;
 
 import com.iview.android.connectionclient.R;
-import com.iview.android.connectionclient.model.DeviceDisplay;
 
 import java.util.List;
 

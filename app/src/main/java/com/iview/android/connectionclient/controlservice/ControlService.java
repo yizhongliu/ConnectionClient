@@ -2,7 +2,6 @@ package com.iview.android.connectionclient.controlservice;
 
 import android.app.Service;
 
-import android.app.Service;
 import android.content.Intent;
 import android.os.Binder;
 import android.os.IBinder;
@@ -10,12 +9,13 @@ import android.util.Log;
 
 import com.iview.android.connectionclient.control.RemoteControl;
 import com.iview.android.connectionclient.model.IServiceListener;
+import com.iview.android.connectionclient.model.upnp.CDevice;
+import com.iview.android.connectionclient.model.upnp.IDeviceDiscoveryListener;
 
 import org.cybergarage.upnp.Device;
 import org.cybergarage.upnp.DeviceList;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 import static org.cybergarage.upnp.device.ST.ALL_DEVICE;
@@ -29,7 +29,7 @@ public class ControlService extends Service implements IServiceListener{
 
     private RemoteControl mControlPoint;
 
-    private List<IServiceListener> mServiceListerner = new ArrayList<>();
+    private List<IDeviceDiscoveryListener> mDeviceListerner = new ArrayList<>();
 
     @Override
     public void onCreate() {
@@ -79,29 +79,29 @@ public class ControlService extends Service implements IServiceListener{
         mControlPoint.search(ALL_DEVICE);
     }
 
-    public void addServiceListerner(IServiceListener serviceListerner) {
-        mServiceListerner.add(serviceListerner);
+    public void addDeviceListerner(IDeviceDiscoveryListener deviceListerner) {
+        mDeviceListerner.add(deviceListerner);
     }
 
-    public void removeSerivceListerner(IServiceListener serviceListener) {
-        if (mServiceListerner.contains(serviceListener)) {
-            mServiceListerner.remove(serviceListener);
+    public void removeDeviceListerner(IDeviceDiscoveryListener deviceListener) {
+        if (mDeviceListerner.contains(deviceListener)) {
+            mDeviceListerner.remove(deviceListener);
         }
     }
     @Override
     public void deviceAdded(final Device device) {
-        if (!mServiceListerner.isEmpty()) {
-            for (int i = 0; i < mServiceListerner.size(); i++) {
-                mServiceListerner.get(i).deviceAdded(device);
+        if (!mDeviceListerner.isEmpty()) {
+            for (int i = 0; i < mDeviceListerner.size(); i++) {
+                mDeviceListerner.get(i).addedDevice(new CDevice(device));
             }
         }
     }
 
     @Override
     public void deviceRemoved(final Device device) {
-        if (!mServiceListerner.isEmpty()) {
-            for (int i = 0; i < mServiceListerner.size(); i++) {
-                mServiceListerner.get(i).deviceRemoved(device);
+        if (!mDeviceListerner.isEmpty()) {
+            for (int i = 0; i < mDeviceListerner.size(); i++) {
+                mDeviceListerner.get(i).removedDevice(new CDevice(device));
             }
         }
     }

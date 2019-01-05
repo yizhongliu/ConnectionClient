@@ -71,6 +71,8 @@
 
 package org.cybergarage.upnp;
 
+import android.util.Log;
+
 import java.io.File;
 import java.io.InputStream;
 import java.net.URL;
@@ -435,9 +437,11 @@ public class Service
 			return null;
 		
 		String scpdURLStr = getSCPDURL();
+		Log.e("Service", " getSCPDURL :" + scpdURLStr);
 
 		// Thanks for Robin V. (Sep 18, 2010)
 		String rootDevPath = rootDev.getDescriptionFilePath();
+		Log.e("service" , " rootDevPath:" +  rootDevPath);
 		if(rootDevPath!=null) {
 			File f;
 			f = new File(rootDevPath.concat(scpdURLStr));
@@ -458,15 +462,21 @@ public class Service
 
 		try {
 			URL scpdUrl = new URL(rootDev.getAbsoluteURL(scpdURLStr));
+            Log.e("service" , "getAbsoluteURL:" +  scpdUrl);
 			scpdNode = getSCPDNode(scpdUrl);		
 			if (scpdNode != null) {
+                Log.e("service", "get scpdNode is not null");
 				data.setSCPDNode(scpdNode);
 				return scpdNode;
 			}
+			Log.e("service", "get scpdNode is null");
 		}
-		catch (Exception e) {}
+		catch (Exception e) {
+		    e.printStackTrace();
+        }
 		
 		String newScpdURLStr = rootDev.getDescriptionFilePath() + HTTP.toRelativeURL(scpdURLStr);
+		Log.e("Service", "newScpdURLStr:" +  newScpdURLStr);
 		try {
 			scpdNode = getSCPDNode(new File(newScpdURLStr));
 			return scpdNode;

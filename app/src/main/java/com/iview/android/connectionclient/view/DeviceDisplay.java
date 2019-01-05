@@ -1,6 +1,8 @@
-package com.iview.android.connectionclient.model;
+package com.iview.android.connectionclient.view;
 
 import android.util.Log;
+
+import com.iview.android.connectionclient.model.upnp.IUpnpDevice;
 
 import org.cybergarage.upnp.Device;
 
@@ -11,10 +13,15 @@ public class DeviceDisplay {
     public final static int DEVICE_TYPE_MEDIASERVER = 0;
     public final static int DEVICE_TYPE_RENDERER = 1;
 
-    private Device device;
+    private final IUpnpDevice device;
 
-    public DeviceDisplay(Device device) {
+    public DeviceDisplay(IUpnpDevice device) {
         this.device = device;
+    }
+
+    public IUpnpDevice getDevice()
+    {
+        return device;
     }
 
     public String getDeviceName() {
@@ -42,5 +49,16 @@ public class DeviceDisplay {
 
     public String getUDN () {
         return device.getUDN();
+    }
+
+    @Override
+    public String toString()
+    {
+        if (device == null)
+            return "";
+
+        String name = getDevice().getFriendlyName();
+
+        return name;
     }
 }

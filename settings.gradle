@@ -1,1 +1,1 @@
-include ':app', ':zxinglibrary', ':upnp'
+include ':app', ':zxinglibrary', ':upnp', ':upnpav'

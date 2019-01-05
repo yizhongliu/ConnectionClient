@@ -7,8 +7,9 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckedTextView;
 
+import com.iview.android.connectionclient.ControlPointActivity;
 import com.iview.android.connectionclient.R;
-import com.iview.android.connectionclient.model.DeviceDisplay;
+import com.iview.android.connectionclient.model.upnp.IUpnpDevice;
 
 import java.util.List;
 
@@ -16,6 +17,8 @@ public class ContentDeviceAdapter extends RecyclerView.Adapter<ContentDeviceAdap
     private final static String TAG = "DeviceAdapter";
 
     private List<DeviceDisplay> mDeviceDisplayList;
+
+    private int selected = -1;
 
     static class ViewHolder extends RecyclerView.ViewHolder {
         CheckedTextView mDeviceView;
@@ -45,8 +48,10 @@ public class ContentDeviceAdapter extends RecyclerView.Adapter<ContentDeviceAdap
             public void onClick(View v) {
                 int position = holder.getAdapterPosition();
                 DeviceDisplay deviceDisplay = mDeviceDisplayList.get(position);
-                CheckedTextView checkedTextView = (CheckedTextView) v;
-                checkedTextView.toggle();
+                selected = position;
+                notifyDataSetChanged();
+
+                select(deviceDisplay.getDevice());  //Notify  device select
             }
         });
         return holder;
@@ -57,6 +62,12 @@ public class ContentDeviceAdapter extends RecyclerView.Adapter<ContentDeviceAdap
         Log.e(TAG, "onBindViewHolder:" + position);
         DeviceDisplay deviceDisplay = mDeviceDisplayList.get(position);
         holder.mDeviceView.setText(deviceDisplay.getDeviceName());
+
+        if (selected == position) {
+            holder.mDeviceView.setChecked(true);
+        } else {
+            holder.mDeviceView.setChecked(false);
+        }
     }
 
     @Override
@@ -65,17 +76,13 @@ public class ContentDeviceAdapter extends RecyclerView.Adapter<ContentDeviceAdap
         return mDeviceDisplayList == null ? 0 : mDeviceDisplayList.size();
     }
 
-    public void addData(int position, DeviceDisplay deviceDisplay) {
-        Log.e(TAG, "addData :" + deviceDisplay.getDeviceName() +",position:" + position + ", size:" + mDeviceDisplayList.size());
-        mDeviceDisplayList.add(position, deviceDisplay);
-        notifyItemInserted(position );
-        notifyItemRangeChanged(position, mDeviceDisplayList.size() - position);
+    protected void select(IUpnpDevice device)
+    {
+        select(device, false);
     }
 
-    public void removeData(int position) {
-        Log.e(TAG, "removeData size:" + mDeviceDisplayList.size());
-        mDeviceDisplayList.remove(position);
-        notifyItemRemoved(position);
-        notifyDataSetChanged();
+    protected void select(IUpnpDevice device, boolean force)
+    {
+        ControlPointActivity.mUpnpServiceController.setSelectedContentDirectory(device, force);
     }
 }
