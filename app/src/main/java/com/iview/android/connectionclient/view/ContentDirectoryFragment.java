@@ -1,7 +1,7 @@
 package com.iview.android.connectionclient.view;
 
 import android.app.Activity;
-import android.app.AlertDialog;
+import android.support.v7.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
@@ -96,7 +96,7 @@ public class ContentDirectoryFragment extends Fragment implements IDeviceDiscove
 
         mContentList = new ArrayList<>();
         mContentReCyclerView = (RecyclerView) view.findViewById(R.id.contentlist_recyclerview);
-        LinearLayoutManager layoutManager = new LinearLayoutManager(getActivity());
+        RecyclerViewLinearLayout layoutManager = new RecyclerViewLinearLayout(getActivity());
         mContentReCyclerView.setLayoutManager(layoutManager);
         mContentDirectoryAdapter = new ContentDirectoryAdapter(mContentList);
         mContentDirectoryAdapter.setOnItemClickListener(new ContentDirectoryAdapter.OnItemClickListener() {
@@ -365,7 +365,9 @@ public class ContentDirectoryFragment extends Fragment implements IDeviceDiscove
     public void launchURI(final IDIDLItem uri) {
         Log.e(TAG, " get item uri" + uri.getURI());
         IUpnpDevice device = ControlPointActivity.mUpnpServiceController.getSelectedRenderer();
-        if (device == null) {
+        int deviceNum = ControlPointActivity.mUpnpServiceController.getUpnpServiceListener().getMediaServerDeviceList().size();
+
+        if ((device == null) || (deviceNum > 1)) {
             showMultiChoiceDialog(uri);
         } else {
             launchRendererUri(device, uri);
@@ -414,6 +416,7 @@ public class ContentDirectoryFragment extends Fragment implements IDeviceDiscove
 
         mediaRendererList.clear();
         final Collection<IUpnpDevice> upnpDevices = ControlPointActivity.mUpnpServiceController.getUpnpServiceListener().getMediaRendererDeviceList();
+        Log.e(TAG, "device size: " + upnpDevices.size());
 
         final String[] items = new String[upnpDevices.size()];
         final boolean checkItem[] = new boolean[upnpDevices.size()];
@@ -422,8 +425,11 @@ public class ContentDirectoryFragment extends Fragment implements IDeviceDiscove
             mediaRendererList.add(upnpDevice);
             items[i] = upnpDevice.getFriendlyName();
             checkItem[i] = false;
+            i++;
         }
-
+        if (getActivity() == null) {
+            Log.e(TAG, "getActivity is null");
+        }
         AlertDialog.Builder multiChoiceDialog =
                 new AlertDialog.Builder(getActivity());
         multiChoiceDialog.setTitle("MediaRenderer");
