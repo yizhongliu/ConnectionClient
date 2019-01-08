@@ -49,13 +49,17 @@ public class DIDLItem extends DIDLObject implements IDIDLItem {
 
 		if (item != null)
 		{
-            String res = ((ItemNode)item).getResource();
-            String protocolInfo = ((ItemNode)item).getProtocolInfo();
-			Log.e(TAG, "Item : res:" + res + ",protocolInfo:" + protocolInfo);
-			return item.getValue();
+            String res = ((ItemNode)item).getFirstResource().getURL();
+			Log.e(TAG, "Item : res:" + res);
+			return res;
 		} else {
 			Log.e(TAG, "item is null");
 		}
 		return null;
+	}
+
+	@Override
+	public ItemNode getItem() {
+		return (ItemNode)item;
 	}
 }

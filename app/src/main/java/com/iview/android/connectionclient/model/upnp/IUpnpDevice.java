@@ -32,6 +32,8 @@ public interface IUpnpDevice {
 
 	public String getDeviceType();
 
+	public String getLocation();
+
 	@Override
 	public String toString();
 }

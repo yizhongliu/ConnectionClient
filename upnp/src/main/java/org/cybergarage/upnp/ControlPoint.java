@@ -251,16 +251,28 @@ public class ControlPoint implements HTTPRequestListener
 		String usn = ssdpPacket.getUSN();
 		String udn = USN.getUDN(usn);
 		Device dev = getDevice(udn);
+		//llm patch begin
+		/*
 		if (dev != null) {
 			dev.setSSDPPacket(ssdpPacket);
 			return;
-		}
+		}*/
+		//llm patch end
 		
 		String location = ssdpPacket.getLocation();
 		try {	
 			URL locationUrl = new URL(location);
 			Parser parser = UPnP.getXMLParser();
+
 			Node rootNode = parser.parse(locationUrl);
+
+            //llm patch begin
+            if (dev != null) {
+                dev.setSSDPPacket(ssdpPacket);
+                return;
+            }
+			//llm patch end
+
 			Device rootDev = getDevice(rootNode);
 			if (rootDev == null)
 				return;
@@ -268,11 +280,12 @@ public class ControlPoint implements HTTPRequestListener
 			addDevice(rootNode);
 
 			// Thanks for Oliver Newell (2004/10/16)
-			// After node is added, invoke the AddDeviceListener to notify high-level 
-			// control point application that a new device has been added. (The 
+			// After node is added, invoke the AddDeviceListener to notify high-level
+			// control point application that a new device has been added. (The
 			// control point application must implement the DeviceChangeListener interface
 			// to receive the notifications)
 			performAddDeviceListener( rootDev );
+
 		}
 		catch (MalformedURLException me) {
 			Debug.warning(ssdpPacket.toString());

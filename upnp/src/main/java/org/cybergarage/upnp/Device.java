@@ -96,6 +96,8 @@
 
 package org.cybergarage.upnp;
 
+import android.util.Log;
+
 import java.io.File;
 import java.io.InputStream;
 import java.net.InetAddress;
@@ -262,6 +264,15 @@ public class Device implements org.cybergarage.http.HTTPRequestListener,
 			URL url = new URL(urlString);
 			return url.toString();
 		} catch (Exception e) {
+		}
+		if (urlString != null) {
+			Log.e("Device", "getAbsoluteURL:  urlString:" + urlString );
+		}
+		if (baseURLStr != null) {
+			Log.e("Device", "baseURLStr:" + baseURLStr );
+		}
+		if (locationURLStr != null) {
+			Log.e("Device", "getAbsoluteURL: locationURLStr:" + locationURLStr);
 		}
 
 		if ((baseURLStr == null) || (baseURLStr.length() <= 0)) {
@@ -738,8 +749,9 @@ public class Device implements org.cybergarage.http.HTTPRequestListener,
 
 	public String getLocation() {
 		SSDPPacket packet = getSSDPPacket();
-		if (packet != null)
-			return packet.getLocation();
+		if (packet != null) {
+            return packet.getLocation();
+        }
 		return getDeviceData().getLocation();
 	}
 

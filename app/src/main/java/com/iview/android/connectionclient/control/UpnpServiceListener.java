@@ -112,4 +112,21 @@ public class UpnpServiceListener implements IDeviceDiscoveryListener{
 
         return iDeviceList;
     }
+
+    public Collection<IUpnpDevice> getMediaRendererDeviceList() {
+        DeviceList deviceList = mControlService.getControlPoint().getDeviceList();
+        ArrayList<IUpnpDevice> iDeviceList = new ArrayList<IUpnpDevice>();
+        for(int i = 0; i < deviceList.size(); i++) {
+            if (deviceList.getDevice(i).getDeviceType().contains("MediaRenderer")) {
+                iDeviceList.add(new CDevice(deviceList.getDevice(i)));
+            }
+        }
+
+        return iDeviceList;
+    }
+
+    public void Search() {
+        mControlService.getControlPoint().search();
+    }
+
 }

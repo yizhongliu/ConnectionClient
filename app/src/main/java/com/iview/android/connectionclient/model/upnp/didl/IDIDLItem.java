@@ -19,7 +19,11 @@
 
 package com.iview.android.connectionclient.model.upnp.didl;
 
+import org.cybergarage.upnp.std.av.server.object.item.ItemNode;
+
 public interface IDIDLItem extends IDIDLObject
 {
 	public String getURI();
+
+	public ItemNode getItem();
 }

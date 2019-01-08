@@ -122,4 +122,7 @@ public class CDevice implements IUpnpDevice {
 	public String getDeviceType() {
 		return device.getDeviceType();
 	}
+
+	@Override
+	public String getLocation() {return device.getLocation();}
 }

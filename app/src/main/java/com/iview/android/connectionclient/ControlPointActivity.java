@@ -1,7 +1,9 @@
 package com.iview.android.connectionclient;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.content.ComponentName;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Build;
@@ -12,7 +14,10 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
+import android.widget.Toast;
 
 import com.iview.android.connectionclient.control.UpnpServiceController;
 import com.iview.android.connectionclient.controlservice.ControlService;
@@ -79,6 +84,25 @@ public class ControlPointActivity extends AppCompatActivity implements View.OnCl
         super.onPause();
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.main, menu);
+        return true;
+    }
+
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.action_search:
+                mUpnpServiceController.getUpnpServiceListener().Search();
+                break;
+            case R.id.menu_quit:
+                finish();
+                break;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+        return true;
+    }
 
     private void initView() {
         if(getFragmentManager().findFragmentById(R.id.navigation_drawer) instanceof DrawerFragment)
@@ -96,8 +120,17 @@ public class ControlPointActivity extends AppCompatActivity implements View.OnCl
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
-
         }
+    }
+
+    @Override
+    public void onBackPressed()
+    {
+        ContentDirectoryFragment cd = getContentDirectoryFragment();
+        if (cd != null && !cd.goBack()) {
+            return;
+        }
+        super.onBackPressed();
     }
 
     public void checkPermission() {

@@ -1,7 +1,9 @@
 package com.iview.android.connectionclient.view;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.app.Fragment;
 import android.os.Handler;
@@ -21,6 +23,7 @@ import com.iview.android.connectionclient.ControlPointActivity;
 import com.iview.android.connectionclient.R;
 import com.iview.android.connectionclient.control.ContentDirectroyControl;
 import com.iview.android.connectionclient.control.RemoteControl;
+import com.iview.android.connectionclient.control.RendererControl;
 import com.iview.android.connectionclient.model.upnp.CDevice;
 import com.iview.android.connectionclient.model.upnp.IDeviceDiscoveryListener;
 import com.iview.android.connectionclient.model.upnp.IUpnpDevice;
@@ -51,6 +54,7 @@ public class ContentDirectoryFragment extends Fragment implements IDeviceDiscove
 
     private final static int MSG_UPDATE = 0;
     private final static int MSG_REFRESH = 1;
+    private final static int MSG_PLAY = 2;
 
     private Activity mActivity;
 
@@ -159,7 +163,7 @@ public class ContentDirectoryFragment extends Fragment implements IDeviceDiscove
     }
 
     public synchronized void refresh() {
-        Log.e(TAG, "refresh");
+        Log.e(TAG, "send refresh");
         Message msg = Message.obtain();
         msg.what = MSG_REFRESH;
         mWorkHandler.sendMessage(msg);
@@ -183,9 +187,20 @@ public class ContentDirectoryFragment extends Fragment implements IDeviceDiscove
                     case MSG_REFRESH:
                         handleMsgRefresh();
                         break;
+                    case MSG_PLAY:
+                        ArrayList addData = msg.getData().getParcelableArrayList("data");
+                        IUpnpDevice device = (IUpnpDevice) addData.get(0);
+                        IDIDLItem item = (IDIDLItem) addData.get(1);
+                        handleMsgPlay(device, item);
+                        break;
                 }
             }
         };
+    }
+
+    private void handleMsgPlay(IUpnpDevice device, IDIDLItem item) {
+        RendererControl rendererControl = new RendererControl(ControlPointActivity.mUpnpServiceController.getUpnpServiceListener().getControlPoint());
+        rendererControl.play(((CDevice)device).getDevice(), item.getItem());
     }
 
     private void handleMsgRefresh() {
@@ -206,6 +221,7 @@ public class ContentDirectoryFragment extends Fragment implements IDeviceDiscove
         IUpnpDevice contentDirectoryDevice = ControlPointActivity.mUpnpServiceController.getSelectedContentDirectory();
 
         if (contentDirectoryDevice == null) {
+            Log.d(TAG, "contentDirectoryDevice == null");
             setEmptyText(getString(R.string.device_list_empty));
 
             if (device != null) {
@@ -239,6 +255,7 @@ public class ContentDirectoryFragment extends Fragment implements IDeviceDiscove
                 return;
             }
 
+            ContentNode contentNode;
             if (device == null || !device.equals(contentDirectoryDevice)) {
 
                 device = ControlPointActivity.mUpnpServiceController.getSelectedContentDirectory();
@@ -246,46 +263,34 @@ public class ContentDirectoryFragment extends Fragment implements IDeviceDiscove
                 tree = new LinkedList<String>();
 
                 Log.i(TAG, "Browse root of a new device");
-                ContentNode contentNode = contentDirectroyControl.getContentDirectory(((CDevice)device).getDevice(),"0");
+                contentNode = contentDirectroyControl.getContentDirectory(((CDevice)device).getDevice(),"0");
                 currentID = "0";
-
-                mContentList.clear();
-                mContentList.addAll(constructDIDLObject(contentNode));
-                if (getActivity() != null) {// Visible
-                    getActivity().runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            // Uncheck device
-                            mContentDirectoryAdapter.notifyDataSetChanged();
-                        }
-                    });
-                }
             } else {
                 if (tree != null && tree.size() > 0)
                 {
                     String parentID = (tree.size() > 0) ? tree.getLast() : null;
                     Log.i(TAG, "Browse, currentID : " + currentID + ", parentID : " + parentID + ", device:" + device.getFriendlyName());
-                    ContentNode contentNode = contentDirectroyControl.getContentDirectory(((CDevice)device).getDevice(),currentID);
+                    contentNode = contentDirectroyControl.getContentDirectory(((CDevice)device).getDevice(),currentID);
                     contentDirectroyControl.printContentNode(contentNode, 1);
 
-                    mContentList.clear();
-                    mContentList.addAll(constructDIDLObject(contentNode));
-                    if (getActivity() != null) {// Visible
-                        getActivity().runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                // Uncheck device
-                                mContentDirectoryAdapter.notifyDataSetChanged();
-                            }
-                        });
-                    }
                 }
                 else
                 {
-
+                    Log.i(TAG, "Browse, root"); contentNode = contentDirectroyControl.getContentDirectory(((CDevice)device).getDevice(), "0");
                 }
             }
 
+            mContentList.clear();
+            mContentList.addAll(constructDIDLObject(contentNode));
+            if (getActivity() != null) {// Visible
+                getActivity().runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        // Uncheck device
+                        mContentDirectoryAdapter.notifyDataSetChanged();
+                    }
+                });
+            }
         }
 
         if (getActivity() != null) {// Visible
@@ -308,7 +313,7 @@ public class ContentDirectoryFragment extends Fragment implements IDeviceDiscove
 
         Log.e(TAG, "node.name :" + node.getTitle());
         if (node.isContainerNode()) {
-            Log.e(TAG, "node.getID() :" + node.getID());
+            Log.e(TAG, "node.getID() :" + node.getID() + ", parentID: " + node.getParentID());
             if (node.getTitle().equals("Root")) {
                 ContainerNode containerNode = (ContainerNode)node;
                 int nContentNodes = containerNode.getNContentNodes();
@@ -329,7 +334,7 @@ public class ContentDirectoryFragment extends Fragment implements IDeviceDiscove
     }
 
     private void handleClickEvent(View v, DIDLObjectDisplay didlObjectDisplay) {
-        Log.d(TAG, "handleClicEvent");
+        Log.e(TAG, "handleClickEvent");
         IDIDLObject didl = didlObjectDisplay.getDIDLObject();
         if (didl instanceof DIDLDevice) {
             ControlPointActivity.mUpnpServiceController.setSelectedContentDirectory(((DIDLDevice)didl).getDevice());
@@ -347,7 +352,7 @@ public class ContentDirectoryFragment extends Fragment implements IDeviceDiscove
 
     @Override
     public void addedDevice(IUpnpDevice device){
-        Log.d(TAG, "device add");
+        Log.e(TAG, "device add location:" + device.getLocation());
         refresh();
     }
 
@@ -359,5 +364,89 @@ public class ContentDirectoryFragment extends Fragment implements IDeviceDiscove
 
     public void launchURI(final IDIDLItem uri) {
         Log.e(TAG, " get item uri" + uri.getURI());
+        IUpnpDevice device = ControlPointActivity.mUpnpServiceController.getSelectedRenderer();
+        if (device == null) {
+            showMultiChoiceDialog(uri);
+        } else {
+            launchRendererUri(device, uri);
+        }
+    }
+
+    public void launchRendererUri(final IUpnpDevice device, final IDIDLItem uri) {
+        Bundle bundle = new Bundle();
+        ArrayList arr = new ArrayList();
+        arr.add(device);
+        arr.add(uri);
+        bundle.putStringArrayList("data",arr);
+        Message message = new Message();
+        message.what = MSG_PLAY;
+        message.setData(bundle);
+        mWorkHandler.sendMessage(message);
+    }
+
+    public Boolean goBack()
+    {
+        if(tree == null || tree.isEmpty())
+        {
+            if(ControlPointActivity.mUpnpServiceController.getSelectedContentDirectory() != null)
+            {
+                // Back on device root, unselect device
+                ControlPointActivity.mUpnpServiceController.setSelectedContentDirectory(null);
+                return false;
+            }
+            else
+            {
+                // Already at the upper level
+                return true;
+            }
+        }
+        else
+        {
+            Log.d(TAG, "Go back in browsing");
+            currentID = tree.pop();
+            refresh();
+            return false;
+        }
+    }
+
+    ArrayList<IUpnpDevice> mediaRendererList = new ArrayList<>();
+    private void showMultiChoiceDialog(final IDIDLItem uri) {
+
+        mediaRendererList.clear();
+        final Collection<IUpnpDevice> upnpDevices = ControlPointActivity.mUpnpServiceController.getUpnpServiceListener().getMediaRendererDeviceList();
+
+        final String[] items = new String[upnpDevices.size()];
+        final boolean checkItem[] = new boolean[upnpDevices.size()];
+        int i = 0;
+        for (IUpnpDevice upnpDevice : upnpDevices) {
+            mediaRendererList.add(upnpDevice);
+            items[i] = upnpDevice.getFriendlyName();
+            checkItem[i] = false;
+        }
+
+        AlertDialog.Builder multiChoiceDialog =
+                new AlertDialog.Builder(getActivity());
+        multiChoiceDialog.setTitle("MediaRenderer");
+        multiChoiceDialog.setMultiChoiceItems(items, checkItem,
+                new DialogInterface.OnMultiChoiceClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which,
+                                        boolean isChecked) {
+                    }
+                });
+        multiChoiceDialog.setPositiveButton("确定",
+                new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        for (int i = 0; i < checkItem.length; i++) {
+                            if(checkItem[i] == true) {
+                                Log.e(TAG, "device :" + mediaRendererList.get(i).getFriendlyName());
+                                ControlPointActivity.mUpnpServiceController.setSelectedRenderer(mediaRendererList.get(i));
+                                launchRendererUri(mediaRendererList.get(i), uri);
+                            }
+                        }
+                    }
+                });
+        multiChoiceDialog.show();
     }
 }
